@@ -54,6 +54,7 @@ def _expand_paths(paths):
             result.append(p)
     return result
 
+
 def _copy_file(src, dst):
     """复制文件，兼容 Windows 下文件被占用的情况"""
     try:
@@ -64,6 +65,7 @@ def _copy_file(src, dst):
         with open(dst, "wb") as f_dst:
             f_dst.write(content)
 
+
 # ============================================================
 # 路径工具
 # ============================================================
@@ -72,19 +74,16 @@ def path_exists(path: str) -> dict:
     """
     判断路径是否存在，及其类型。
 
-    同时检查路径是文件还是目录。如果路径存在但既不是文件也不是目录
-    （例如损坏的符号链接），type 字段为 None。
-
     Args:
         path: 要检查的文件或目录路径。
 
     Returns:
         dict:
-            - success (bool): 始终为 True。
+            - success (bool)
             - data (dict):
-                - path (str): 传入的原始路径。
-                - exists (bool): 路径是否存在。
-                - type (str | None): "file"、"directory" 或 None。
+                - path (str)
+                - exists (bool)
+                - type (str | None): "file"、"directory" 或 None
     """
     exists = os.path.exists(path)
     return {
@@ -101,32 +100,25 @@ def dir_scan(path: str, recursive: bool = True, max_depth: int = -1, include_hid
     """
     扫描目录结构，返回完整的目录树及统计信息。
 
-    内部通过递归构建树状结构，每个目录节点包含其下所有子节点。
-    当设置了 max_depth 时，超过深度的目录不会被展开，其 children 为空。
-
     Args:
         path: 要扫描的目录路径。
-        recursive: 是否递归展开子目录。若为 False，只列出第一层。
-        max_depth: 最大递归深度，从 0 开始计数。-1 表示无限制。
-        include_hidden: 是否包含以 "." 开头的隐藏文件和目录。
+        recursive: 是否递归展开子目录。
+        max_depth: 最大递归深度，-1 表示无限制。
+        include_hidden: 是否包含隐藏文件。
 
     Returns:
         dict:
-            - success (bool): 扫描是否成功。路径无效时为 False。
-            - error (str, optional): 失败时的错误信息。
-            - data (dict, optional): 成功时包含以下字段：
-                - root (str): 扫描的根目录路径。
-                - tree (dict): 目录树，根节点格式为
-                  {"name": str, "type": "directory", "children": list}。
-                  文件节点额外包含 size_bytes 字段。
-                - file_count (int): 总文件数。
-                - dir_count (int): 总子目录数（不包含根目录自身）。
+            - success (bool)
+            - data (dict):
+                - root (str)
+                - tree (dict)
+                - file_count (int)
+                - dir_count (int)
     """
     if not os.path.isdir(path):
         return {'success': False, 'error': f"不是有效目录：{path}"}
 
     def _scan(p, depth):
-        """递归扫描目录的内部函数"""
         node = {'name': os.path.basename(p), 'type': "directory", "children": []}
         if max_depth != -1 and depth >= max_depth:
             return node
@@ -155,9 +147,10 @@ def dir_scan(path: str, recursive: bool = True, max_depth: int = -1, include_hid
 
     def _count_type(t, node_type):
         """递归统计指定类型的节点数量"""
-        if node_type == "directory":
-            return 1 + sum(_count_type(c, node_type) for c in t.get('children', []))
-        return sum(1 for c in t.get('children', []) if c['type'] == node_type)
+        count = 1 if t.get('type') == node_type else 0
+        for c in t.get('children', []):
+            count += _count_type(c, node_type)
+        return count
 
     file_count = _count_type(tree, "file")
     dir_count = _count_type(tree, "directory") - 1
@@ -181,28 +174,19 @@ def archive_pack(why: str, what: list = None) -> dict:
     """
     创建快照，保存指定文件的副本。
 
-    在修改代码、生成新能力、执行测试前调用此工具，
-    创建当前状态的完整备份。出问题时可用 snapshot_restore 恢复。
-
     Args:
-        why:  为什么要创建快照，比如 "修改login.py修复超时bug前备份"
-        what: 要备份的文件或目录路径列表，比如 ["src/login.py", "skills/"]
-              不传或传 None 则备份整个项目源码
+        why: 创建原因。
+        what: 要备份的文件或目录路径列表。
 
     Returns:
         dict:
-            - success (bool): 是否创建成功
-            - error  (str, optional): 失败时的错误信息
-            - data   (dict, optional): 成功时包含：
-                - snapshot_id (str): 快照唯一标识
-                - path (str): 快照存储路径
-                - why (str): 创建原因
-                - file_count (int): 备份的文件数量
-                - when (str): 创建时间
-
-    Examples:
-        archive_pack("修bug前备份", ["src/login.py"])
-        archive_pack("v1.3测试基线")
+            - success (bool)
+            - data (dict):
+                - snapshot_id (str)
+                - path (str)
+                - why (str)
+                - file_count (int)
+                - when (str)
     """
     os.makedirs(SNAPSHOT_DIR, exist_ok=True)
     snapshot_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -250,14 +234,12 @@ def snapshot_list() -> dict:
     """
     列出所有已创建的快照。
 
-    需要查看快照历史、选择恢复目标时调用此工具。
-
     Returns:
         dict:
-            - success (bool): 是否成功
-            - data   (dict):
-                - snapshots (list): 快照列表，每个快照包含 snapshot_id, why, when, files
-                - count (int): 快照总数
+            - success (bool)
+            - data (dict):
+                - snapshots (list)
+                - count (int)
     """
     record = _load_record()
     return {
@@ -273,22 +255,18 @@ def snapshot_restore(snapshot_id: str, what: list = None) -> dict:
     """
     从快照恢复文件。
 
-    当代码修改出错、测试失败需要回滚时调用此工具。
-    可以将指定快照中的文件恢复到项目对应位置。
-
     Args:
-        snapshot_id: 快照ID，由 archive_pack 创建时返回
-        what: 要恢复的文件路径列表，不传则恢复该快照的全部文件
+        snapshot_id: 快照ID。
+        what: 要恢复的文件路径列表。
 
     Returns:
         dict:
-            - success (bool): 是否恢复成功
-            - error  (str, optional): 失败信息
-            - data   (dict, optional): 成功时包含：
-                - restored (list): 已恢复的文件列表
-                - failed (list): 恢复失败的文件列表
-                - restored_count (int): 成功恢复的文件数
-                - failed_count (int): 失败的文件数
+            - success (bool)
+            - data (dict):
+                - restored (list)
+                - failed (list)
+                - restored_count (int)
+                - failed_count (int)
     """
     record = _load_record()
 
@@ -307,13 +285,13 @@ def snapshot_restore(snapshot_id: str, what: list = None) -> dict:
     failed = []
     for filepath in files_to_restore:
         src = os.path.join(SNAPSHOT_DIR, snapshot_id, filepath)
-        if not os.path.exists(src):  
+        if not os.path.exists(src):
             failed.append(filepath)
             continue
         dst = os.path.join(_PROJECT_ROOT, filepath)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        _copy_file(src, dst)           
-        restored.append(filepath)   
+        _copy_file(src, dst)
+        restored.append(filepath)
 
     return {
         "success": len(failed) == 0,
@@ -351,7 +329,6 @@ if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("测试3: archive_pack（备份指定文件）")
     print("=" * 50)
-    # 用当前文件自身做测试
     result = archive_pack("测试快照", [__file__])
     print(result)
 
@@ -366,7 +343,6 @@ if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("测试5: snapshot_restore（恢复刚才的快照）")
     print("=" * 50)
-    # 拿到刚才的快照ID
     snap_id = snapshot_list()['data']['snapshots'][0]['snapshot_id']
     result = snapshot_restore(snap_id)
     print(result)
