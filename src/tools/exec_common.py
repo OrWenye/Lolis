@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
+import platform
 
 
 DEFAULT_TIMEOUT_MS = 120_000
@@ -183,13 +184,15 @@ def _normalize_timeout_ms(timeout_ms: int | None) -> tuple[int, str | None]:
 
 def _run_shell_command(command: str, workdir: Path, timeout_ms: int) -> dict:
     started = time.perf_counter()
+    # 根据操作系统选择合适的编码
+    encoding = "utf-8" if platform.system() != "Windows" else "gbk"
     try:
         completed = subprocess.run(
             command,
             cwd=str(workdir),
             capture_output=True,
             text=True,
-            encoding="utf-8",
+            encoding=encoding,
             errors="replace",
             timeout=timeout_ms / 1000,
             shell=True,
@@ -233,6 +236,8 @@ def _run_command(command_parts: list[str], runner: str, workdir: Path, timeout_m
     started = time.perf_counter()
     # 这份 command 主要用于日志和结果展示，不参与执行。
     command = " ".join(command_parts)
+    # 根据操作系统选择合适的编码
+    encoding = "utf-8" if platform.system() != "Windows" else "gbk"
 
     try:
         # shell=False 可以避免把这个工具变成任意 shell 解释器。
@@ -241,7 +246,7 @@ def _run_command(command_parts: list[str], runner: str, workdir: Path, timeout_m
             cwd=str(workdir),
             capture_output=True,
             text=True,
-            encoding="utf-8",
+            encoding=encoding,
             errors="replace",
             timeout=timeout_ms / 1000,
             shell=False,
@@ -288,19 +293,19 @@ def _run_command(command_parts: list[str], runner: str, workdir: Path, timeout_m
 
 
 if __name__ == "__main__":
-    # 测试 run_test_command
-    result = run_test_command(
-        runner="pytest",
-        target="tests",
-        extra_args=["-q"],
-    )
-    print("Test run_test_command:")
-    print(result)
+    # # 测试 run_test_command
+    # result = run_test_command(
+    #     runner="pytest",
+    #     target="tests",
+    #     extra_args=["-q"],
+    # )
+    # print("Test run_test_command:")
+    # print(result)
 
-    # 测试 run_shell_command
-    result_shell = run_shell_command("echo hello world", workdir=".", timeout_ms=5000)
-    print("\nTest run_shell_command (echo):")
-    print(result_shell)
+    # # 测试 run_shell_command
+    # result_shell = run_shell_command("echo hello world", workdir=".", timeout_ms=5000)
+    # print("\nTest run_shell_command (echo):")
+    # print(result_shell)
 
     # 平台特定测试
     import platform
